@@ -1,0 +1,163 @@
+{
+	"info": {
+		"_postman_id": "28cbcfc7-5f5d-42c6-9afc-8dc6d8d6bea9",
+		"name": "New API Testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26800182",
+		"_collection_link": "https://script-snipers.postman.co/workspace/Script-Snipers-Workspace~31dde654-77d5-4eb1-88d8-4989125fd3fd/collection/26800182-28cbcfc7-5f5d-42c6-9afc-8dc6d8d6bea9?action=share&source=collection_link&creator=26800182"
+	},
+	"item": [
+		{
+			"name": "Get By Id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180de",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users",
+						"68d0d26974861b3326a180de"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Post New",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Liam1\",\r\n    \"email\": \"l@example.com\",\r\n    \"age\": 27,\r\n    \"city\": \"San Diego\",\r\n    \"orders\": []\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users/",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update by put",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"_id\": \"68d0d26974861b3326a180de\",\r\n    \"name\": \"Alice Johnson\",\r\n    \"email\": \"alice_john12@example.com\",\r\n    \"age\": 30,\r\n    \"city\": \"New York\",\r\n    \"orders\": [\r\n        {\r\n            \"item\": \"Laptop\",\r\n            \"price\": 1200\r\n        },\r\n        {\r\n            \"item\": \"Headphones\",\r\n            \"price\": 150\r\n        }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180de",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users",
+						"68d0d26974861b3326a180de"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete entry",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180e2",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users",
+						"68d0d26974861b3326a180e2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update by patch",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"alice_john92@example.com\",\r\n    \"age\": 26\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180de",
+					"protocol": "https",
+					"host": [
+						"api-testing-sbnr",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"users",
+						"68d0d26974861b3326a180de"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

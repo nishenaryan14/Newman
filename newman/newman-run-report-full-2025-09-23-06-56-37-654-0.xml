@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite id="0" hostname="https://api-testing-sbnr.onrender.com" package="" name="Get By Id" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:37.648" time="0.703"/>
+  <testsuite id="1" hostname="https://api-testing-sbnr.onrender.com" package="" name="Post New" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:38.351" time="0.578"/>
+  <testsuite id="2" hostname="https://api-testing-sbnr.onrender.com" package="" name="Get All" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:38.929" time="0.522"/>
+  <testsuite id="3" hostname="https://api-testing-sbnr.onrender.com" package="" name="update by put" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:39.451" time="0.512"/>
+  <testsuite id="4" hostname="https://api-testing-sbnr.onrender.com" package="" name="delete entry" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:39.963" time="0.472"/>
+  <testsuite id="5" hostname="https://api-testing-sbnr.onrender.com" package="" name="update by patch" tests="0" failures="0" errors="0" timestamp="2025-09-23T12:26:40.435" time="0.482"/>
+</testsuites>
