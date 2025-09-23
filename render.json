@@ -30,12 +30,62 @@
 		},
 		{
 			"name": "Post New",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// ✅ Set base URL and endpoint\r",
+							"pm.environment.set(\"baseUrl\", \"https://api-testing-sbnr.onrender.com\");\r",
+							"pm.environment.set(\"usersEndpoint\", \"/users\");\r",
+							"\r",
+							"// ✅ Set test data for creating a user\r",
+							"pm.environment.set(\"userName\", \"Test User \" + Date.now()); // Unique name using timestamp\r",
+							"pm.environment.set(\"userEmail\", \"testuser\" + Date.now() + \"@example.com\");\r",
+							"pm.environment.set(\"userAge\", Math.floor(Math.random() * 50) + 18); // Random age between 18-67\r",
+							"pm.environment.set(\"userCity\", \"Test City\");\r",
+							"\r",
+							"// ✅ Construct full URL\r",
+							"let fullUrl = pm.environment.get(\"baseUrl\") + pm.environment.get(\"usersEndpoint\");\r",
+							"pm.environment.set(\"fullUsersUrl\", fullUrl);\r",
+							"\r",
+							"// ✅ Log for debugging\r",
+							"console.log(\"POST to:\", fullUrl);\r",
+							"console.log(\"Test Data - name:\", pm.environment.get(\"userName\"));\r",
+							"console.log(\"Test Data - email:\", pm.environment.get(\"userEmail\"));\r",
+							"console.log(\"Test Data - age:\", pm.environment.get(\"userAge\"));\r",
+							"console.log(\"Test Data - city:\", pm.environment.get(\"userCity\"));\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.expect(pm.response.code).to.equal(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response time is within acceptable limits\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(1500); // 1.5 seconds\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"name\": \"Liam1\",\r\n    \"email\": \"l@example.com\",\r\n    \"age\": 27,\r\n    \"city\": \"San Diego\",\r\n    \"orders\": []\r\n}",
+					"raw": "{\r\n    \"name\": \"{{userName}}\",\r\n    \"email\": \"{{userEmail}}\",\r\n    \"age\": {{userAge}},\r\n    \"city\": \"{{userCity}}\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -43,15 +93,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://api-testing-sbnr.onrender.com/users",
-					"protocol": "https",
+					"raw": "{{fullUsersUrl}}",
 					"host": [
-						"api-testing-sbnr",
-						"onrender",
-						"com"
-					],
-					"path": [
-						"users"
+						"{{fullUsersUrl}}"
 					]
 				}
 			},
@@ -59,20 +103,131 @@
 		},
 		{
 			"name": "Get All",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Set base URL and endpoint\r",
+							"pm.environment.set(\"baseUrl\", \"https://api-testing-sbnr.onrender.com\");\r",
+							"pm.environment.set(\"usersEndpoint\", \"/users\");\r",
+							"\r",
+							"// Construct full URL\r",
+							"let fullUrl = pm.environment.get(\"baseUrl\") + pm.environment.get(\"usersEndpoint\");\r",
+							"pm.environment.set(\"fullUsersUrl\", fullUrl);\r",
+							"\r",
+							"// Optional: Log to console for debugging\r",
+							"console.log(\"Requesting users from:\", fullUrl);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ==================== JSON RESPONSE VALIDATION - ARRAY (USERS) ====================\r",
+							"\r",
+							"// ✅ Array + per-item validation (minimal)\r",
+							"pm.test(\"Users array validation\", function () {\r",
+							"  const users = pm.response.json();\r",
+							"  pm.expect(users).to.be.an('array');\r",
+							"  pm.expect(users.length).to.be.above(0);\r",
+							"\r",
+							"  const enforceHexId = pm.environment.get(\"enforce_hex_id\") === \"true\";\r",
+							"\r",
+							"  users.forEach((u, i) => {\r",
+							"    // Required fields\r",
+							"    pm.expect(u).to.have.property('_id');\r",
+							"    pm.expect(u).to.have.property('name');\r",
+							"    pm.expect(u).to.have.property('email');\r",
+							"    pm.expect(u).to.have.property('age');\r",
+							"    pm.expect(u).to.have.property('city');\r",
+							"    pm.expect(u).to.have.property('orders');\r",
+							"\r",
+							"    // Types / values (kept lean)\r",
+							"    pm.expect(u._id).to.be.a('string').and.to.have.length.above(0);\r",
+							"    if (enforceHexId) {\r",
+							"      pm.expect(u._id, `Invalid _id at index ${i}`).to.match(/^[a-fA-F0-9]{24}$/);\r",
+							"    }\r",
+							"\r",
+							"    pm.expect(u.name).to.be.a('string').and.to.have.length.above(0);\r",
+							"    pm.expect(u.email).to.be.a('string').and.to.match(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/);\r",
+							"    pm.expect(u.age).to.be.a('number').and.to.be.within(0, 120);\r",
+							"    pm.expect(Number.isInteger(u.age)).to.be.true;\r",
+							"    pm.expect(u.city).to.be.a('string').and.to.have.length.above(0);\r",
+							"    pm.expect(u.orders).to.be.an('array');\r",
+							"\r",
+							"    // Minimal orders check\r",
+							"    u.orders.forEach((o) => {\r",
+							"      pm.expect(o).to.have.property('item');\r",
+							"      pm.expect(o.item).to.be.a('string').and.to.have.length.above(0);\r",
+							"      pm.expect(o).to.have.property('price');\r",
+							"      pm.expect(o.price).to.be.a('number').and.at.least(0);\r",
+							"    });\r",
+							"\r",
+							"    if (i < 3) console.log(`User ${i}: ${u._id} - ${u.name} (${u.city})`);\r",
+							"  });\r",
+							"});\r",
+							"\r",
+							"// ✅ Contains specific users / properties (unchanged)\r",
+							"pm.test(\"Contains specific users / properties\", function () {\r",
+							"  const users = pm.response.json();\r",
+							"\r",
+							"  const alice = users.find(u => u._id === \"68d0d26974861b3326a180de\");\r",
+							"  pm.expect(alice).to.not.be.undefined;\r",
+							"  pm.expect(alice.name).to.include(\"Alice\");\r",
+							"\r",
+							"  const jack = users.find(u => u.name === \"Jack White\");\r",
+							"  pm.expect(jack).to.not.be.undefined;\r",
+							"  pm.expect(jack.city).to.equal(\"Austin\");\r",
+							"\r",
+							"  const emptyOrders = users.filter(u => Array.isArray(u.orders) && u.orders.length === 0);\r",
+							"  pm.expect(emptyOrders.length).to.be.above(0);\r",
+							"\r",
+							"  const sanDiegoUsers = users.filter(u => u.city === \"San Diego\");\r",
+							"  pm.expect(sanDiegoUsers.length).to.be.above(0);\r",
+							"  console.log(`San Diego users: ${sanDiegoUsers.length}`);\r",
+							"});\r",
+							"\r",
+							"// ✅ All _id values unique\r",
+							"pm.test(\"All user IDs are unique\", function () {\r",
+							"  const users = pm.response.json();\r",
+							"  const ids = users.map(u => u._id);\r",
+							"  const uniqueIds = [...new Set(ids)];\r",
+							"  pm.expect(ids.length).to.equal(uniqueIds.length);\r",
+							"});\r",
+							"\r",
+							"// ✅ Ordering by _id is OPTIONAL (disabled by default)\r",
+							"pm.test(\"Users are ordered by _id (optional)\", function () {\r",
+							"  const users = pm.response.json();\r",
+							"  const expectSorted = pm.environment.get(\"expect_sorted_by_id\") === \"true\";\r",
+							"  if (!expectSorted) {\r",
+							"    console.log(\"Skipping order-by-_id check (set env var expect_sorted_by_id=true to enforce).\");\r",
+							"    return pm.expect(true).to.be.true;\r",
+							"  }\r",
+							"  for (let i = 1; i < users.length; i++) {\r",
+							"    pm.expect(users[i]._id.localeCompare(users[i - 1]._id), `Order break between ${users[i-1]._id} and ${users[i]._id}`).to.be.above(0);\r",
+							"  }\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "https://api-testing-sbnr.onrender.com/users/",
-					"protocol": "https",
+					"raw": "{{fullUsersUrl}}",
 					"host": [
-						"api-testing-sbnr",
-						"onrender",
-						"com"
-					],
-					"path": [
-						"users",
-						""
+						"{{fullUsersUrl}}"
 					]
 				}
 			},
@@ -80,12 +235,61 @@
 		},
 		{
 			"name": "update by put",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// ✅ Set base URL and endpoint\r",
+							"pm.environment.set(\"baseUrl\", \"https://api-testing-sbnr.onrender.com\");\r",
+							"pm.environment.set(\"usersEndpoint\", \"/users\");\r",
+							"\r",
+							"// ✅ Choose the user to update\r",
+							"pm.environment.set(\"userId\", \"68d2236b7b91a088d4bb1ba1\"); // _id from your record\r",
+							"pm.environment.set(\"userNumericId\", 10); // optional: the numeric id field\r",
+							"\r",
+							"// ✅ Set updated test data (matching your object)\r",
+							"pm.environment.set(\"updatedName\", \"User Ten\");\r",
+							"pm.environment.set(\"updatedEmail\", \"user10@example.com\");\r",
+							"pm.environment.set(\"updatedAge\", 20);\r",
+							"pm.environment.set(\"updatedCity\", \"Nashvillee\");\r",
+							"\r",
+							"// Orders as JSON string so it can be injected into raw JSON body\r",
+							"const updatedOrders = [\r",
+							"  { item: \"Speaker\", price: 120 }\r",
+							"];\r",
+							"pm.environment.set(\"updatedOrders\", JSON.stringify(updatedOrders));\r",
+							"\r",
+							"// ✅ Construct full URL for PUT\r",
+							"let fullUrl = pm.environment.get(\"baseUrl\")\r",
+							"  + pm.environment.get(\"usersEndpoint\")\r",
+							"  + \"/\"\r",
+							"  + pm.environment.get(\"userId\");\r",
+							"\r",
+							"pm.environment.set(\"fullPutUrl\", fullUrl);\r",
+							"\r",
+							"// ✅ Log for debugging\r",
+							"console.log(\"PUT to:\", fullUrl);\r",
+							"console.log(\"Updated Name:\", pm.environment.get(\"updatedName\"));\r",
+							"console.log(\"Updated Email:\", pm.environment.get(\"updatedEmail\"));\r",
+							"console.log(\"Updated Age:\", pm.environment.get(\"updatedAge\"));\r",
+							"console.log(\"Updated City:\", pm.environment.get(\"updatedCity\"));\r",
+							"console.log(\"Updated Orders:\", pm.environment.get(\"updatedOrders\"));\r",
+							"console.log(\"Numeric id (optional):\", pm.environment.get(\"userNumericId\"));\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
 			"request": {
 				"method": "PUT",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"_id\": \"68d0d26974861b3326a180de\",\r\n    \"name\": \"Alice Johnson\",\r\n    \"email\": \"alice_john12@example.com\",\r\n    \"age\": 30,\r\n    \"city\": \"New York\",\r\n    \"orders\": [\r\n        {\r\n            \"item\": \"Laptop\",\r\n            \"price\": 1200\r\n        },\r\n        {\r\n            \"item\": \"Headphones\",\r\n            \"price\": 150\r\n        }\r\n    ]\r\n}",
+					"raw": "{\r\n  \"_id\": \"{{userId}}\",\r\n  \"id\": {{userNumericId}},\r\n  \"name\": \"{{updatedName}}\",\r\n  \"email\": \"{{updatedEmail}}\",\r\n  \"age\": {{updatedAge}},\r\n  \"city\": \"{{updatedCity}}\",\r\n  \"orders\": {{updatedOrders}}\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -93,16 +297,9 @@
 					}
 				},
 				"url": {
-					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180de",
-					"protocol": "https",
+					"raw": "{{fullPutUrl}}",
 					"host": [
-						"api-testing-sbnr",
-						"onrender",
-						"com"
-					],
-					"path": [
-						"users",
-						"68d0d26974861b3326a180de"
+						"{{fullPutUrl}}"
 					]
 				}
 			},
@@ -110,20 +307,43 @@
 		},
 		{
 			"name": "delete entry",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Set base URL and endpoint\r",
+							"pm.environment.set(\"baseUrl\", \"https://api-testing-sbnr.onrender.com\");\r",
+							"pm.environment.set(\"usersEndpoint\", \"/users\");\r",
+							"\r",
+							"// Choose a user ID to delete\r",
+							"pm.environment.set(\"userIdToDelete\", \"68d25cecc3dd4531f2f2e8ea\"); // change if needed\r",
+							"\r",
+							"// Construct full URL for DELETE\r",
+							"let fullUrl = pm.environment.get(\"baseUrl\")\r",
+							"  + pm.environment.get(\"usersEndpoint\")\r",
+							"  + \"/\"\r",
+							"  + pm.environment.get(\"userIdToDelete\");\r",
+							"\r",
+							"pm.environment.set(\"fullDeleteUrl\", fullUrl);\r",
+							"\r",
+							"// Log for debugging\r",
+							"console.log(\"DELETE request to:\", fullUrl);\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
 			"request": {
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180e2",
-					"protocol": "https",
+					"raw": "{{fullDeleteUrl}}",
 					"host": [
-						"api-testing-sbnr",
-						"onrender",
-						"com"
-					],
-					"path": [
-						"users",
-						"68d0d26974861b3326a180e2"
+						"{{fullDeleteUrl}}"
 					]
 				}
 			},
@@ -136,7 +356,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"alice_john92@example.com\",\r\n    \"age\": 26\r\n}",
+					"raw": "{\r\n    \"age\": 19\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -144,7 +364,7 @@
 					}
 				},
 				"url": {
-					"raw": "https://api-testing-sbnr.onrender.com/users/68d0d26974861b3326a180de",
+					"raw": "https://api-testing-sbnr.onrender.com/users/68d2236b7b91a088d4bb1ba1",
 					"protocol": "https",
 					"host": [
 						"api-testing-sbnr",
@@ -153,7 +373,7 @@
 					],
 					"path": [
 						"users",
-						"68d0d26974861b3326a180de"
+						"68d2236b7b91a088d4bb1ba1"
 					]
 				}
 			},
