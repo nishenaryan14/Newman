@@ -1,33 +1,121 @@
 name: API Tests
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+
+# Permissions needed for Pages deploy and optional PR comment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+# Ensure only one Pages deployment runs at a time
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   api-test:
+    name: Build & Test (Generate Reports)
     runs-on: ubuntu-latest
+
+    outputs:
+      test_exit_code: ${{ steps.newman.outputs.code }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'  # or '18'
+          node-version: '20'  # keep in sync with Jenkins for consistent output
 
       - name: Install Newman + reporters (global)
         run: |
-          npm i -g newman newman-reporter-html newman-reporter-json newman-reporter-junitfull
+          # Pin if you want absolute parity across environments
+          npm i -g newman@6 newman-reporter-htmlextra@1 newman-reporter-junitfull@1
           mkdir -p reports
 
-      - name: Run API Tests (single command)
-        run: >
-          newman run render.json
-          -r cli,html,json,junitfull
-          --reporter-html-export reports/html-report.html
-          --reporter-json-export reports/json-report.json
-          --reporter-junitfull-export reports/junit-report.xml
+      - name: Run API Tests (htmlextra)
+        id: newman
+        run: |
+          set +e
+          newman --version
+          newman run render.json \
+            -r cli,htmlextra,junitfull \
+            --reporter-htmlextra-export reports/index.html \
+            --reporter-htmlextra-title "Newman API Test Report" \
+            --reporter-junitfull-export reports/junit.xml
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          # Do not fail here; we want to publish the report even if tests fail
 
-      - name: Upload Reports
+      - name: Upload Reports (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: api-test-reports
           path: reports/
+
+      # Prepare GitHub Pages (must run before uploading the Pages artifact)
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      # Upload the built static site (our reports folder) for Pages deploy
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: api-test
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Add summary with Report link
+        run: |
+          {
+            echo "## Newman API Test Report"
+            echo ""
+            echo "- **Live HTML (GitHub Pages):** ${{ steps.deployment.outputs.page_url }}"
+            echo "- **Workflow Artifact (zip):** will be attached above"
+            echo ""
+            echo "- **Newman exit code:** ${{ needs.api-test.outputs.test_exit_code }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR with Report link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = '${{ needs.api-test.outputs.test_exit_code }}';
+            const url = '${{ steps.deployment.outputs.page_url }}';
+            const body = [
+              `### 🧪 Newman API Test Report`,
+              ``,
+              `**Report:** ${url}`,
+              `**Newman exit code:** ${exitCode} ${exitCode === '0' ? '✅' : '❌'}`,
+            ].join('\n');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      # Finally, fail the job if tests failed (after we've published the report)
+      - name: Fail if tests failed
+        if: needs.api-test.outputs.test_exit_code != '0'
+        run: |
+          echo "Newman failed with exit code ${{ needs.api-test.outputs.test_exit_code }}."
+          exit 1
