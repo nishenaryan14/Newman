@@ -20,7 +20,7 @@ jobs:
 
       - name: Run API Tests (single command)
         run: >
-          newman run render.json
+          newman run render1.json
           -r cli,html,json,junitfull
           --reporter-html-export reports/html-report.html
           --reporter-json-export reports/json-report.json
