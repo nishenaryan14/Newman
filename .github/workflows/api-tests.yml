@@ -6,8 +6,8 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  pages: write        # required by actions/deploy-pages
+  id-token: write     # required by actions/deploy-pages
   pull-requests: write
 
 concurrency:
@@ -18,14 +18,18 @@ jobs:
   api-test:
     name: Build & Test (Generate Reports)
     runs-on: ubuntu-latest
+
     outputs:
       test_exit_code: ${{ steps.newman.outputs.code }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20'   # keep in sync with Jenkins for consistent output
 
       - name: Install Newman + reporters (global)
         run: |
@@ -43,6 +47,7 @@ jobs:
             --reporter-htmlextra-title "Newman API Test Report" \
             --reporter-junitfull-export reports/junit.xml
           echo "code=$?" >> "$GITHUB_OUTPUT"
+        # don't fail here; we still want to publish reports
 
       - name: Upload Reports (artifact)
         if: always()
@@ -51,9 +56,9 @@ jobs:
           name: api-test-reports
           path: reports/
 
-      # Only attempt auto-enable if PAT exists and NOT a forked PR
-      - name: Configure Pages (auto-enable when missing)
-        if: ${{ always() && secrets.PAGES_PAT != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+      # Auto-enable Pages if not enabled (needs PAT; GITHUB_TOKEN won't do it)
+      - name: Configure Pages
+        if: always()
         uses: actions/configure-pages@v4
         with:
           enablement: true
@@ -69,7 +74,6 @@ jobs:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     needs: api-test
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
     environment:
       name: github-pages
@@ -84,6 +88,7 @@ jobs:
         run: |
           {
             echo "## Newman API Test Report"
+            echo ""
             echo "- **Live HTML (GitHub Pages):** ${{ steps.deployment.outputs.page_url }}"
             echo "- **Newman exit code:** ${{ needs.api-test.outputs.test_exit_code }}"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -108,6 +113,7 @@ jobs:
               body
             });
 
+      # Fail the workflow *after* publishing, if tests failed
       - name: Fail if tests failed
         if: needs.api-test.outputs.test_exit_code != '0'
         run: |
